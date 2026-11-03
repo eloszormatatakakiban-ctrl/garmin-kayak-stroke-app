@@ -1,24 +1,24 @@
-# Garmin Kayak Stroke (prototype)
+# Garmin Kayak Stroke
 
-A small Connect IQ watch-app prototype targeting the Garmin Forerunner 970. It displays an experimental accelerometer-based stroke count, strokes per minute, and elapsed time. The watch should be secured to the kayak in a consistent orientation.
+A Connect IQ watch app for the Garmin Forerunner 970. While open, it displays an experimental accelerometer-based kayak stroke count, strokes per minute, and elapsed time.
 
-## Current prototype limitations
+## Watch controls
 
-- Stroke detection is a simple motion-change threshold, not a trained or validated model. Expect false positives/negatives from waves, handling, and mount vibration. Calibrate and test safely before relying on it.
-- It does not yet create/save a Garmin FIT activity. It only displays the counters while the app is open.
-- It does not measure watts. Accurate power requires a compatible power sensor; acceleration alone cannot provide reliable kayak power.
-- The 970's exact Connect IQ API/device support and the APIs used here must be validated against the installed Garmin SDK. This repository is a starting prototype, not a verified release build.
+- **SELECT**: start, pause, or resume a session.
+- **BACK**: stop the current session. Starting again begins a fresh session.
+- **MENU** while paused or stopped: reset the displayed session counters.
 
 ## Build and install
 
-1. Install Garmin Connect IQ SDK Manager and the Monkey C extension for Visual Studio Code from Garmin's official developer site.
-2. Install a Connect IQ SDK version that includes the Forerunner 970, then open this repository folder in VS Code.
-3. Select the Forerunner 970 as the target device in the Monkey C project settings.
-4. Build and launch in the simulator first. Confirm the sensor callback and app keys work with the installed SDK/device profile.
-5. For a physical watch, use Garmin's development-device setup and VS Code's Run/Debug deployment flow. The watch must be registered as a development device; a sideloaded development app is not the same as a Connect IQ Store installation.
+1. Install Garmin Connect IQ SDK Manager and the Monkey C extension for Visual Studio Code.
+2. Install an SDK version that includes the Forerunner 970 and open this repository in VS Code.
+3. Select **Forerunner 970** as the target device.
+4. Build and test in the Connect IQ simulator first, including sensor data and button behavior.
+5. For a physical watch, register it as a development device and deploy using the VS Code Run/Debug flow. A development build is not a Garmin Connect IQ Store release.
 
-Typical VS Code commands are available from the Command Palette: **Monkey C: Build for Device** and **Monkey C: Run**. Exact labels can vary by extension version. For Store distribution, create a developer account, sign and submit the app through Garmin's Connect IQ developer portal; approval is separate from local installation.
+## Limitations
 
-## First-use test
-
-Open the app and press **SELECT** to start/stop counting. Keep the watch mounted on the kayak and test a known number of strokes in calm conditions. Compare the displayed count and cadence with a manual count. Do not treat this threshold algorithm as automatically trained: this prototype has no calibration/training workflow yet.
+- Stroke detection is a simple motion-change heuristic, not a trained or validated model. Waves, handling, mounting position, and vibration can cause false positives or missed strokes. Test and calibrate safely.
+- The app currently displays counters only; it does not create or save a Garmin FIT activity.
+- It does not measure watts. Reliable power requires a compatible power sensor.
+- Validate the APIs and behavior against the installed Garmin SDK and the actual Forerunner 970 before relying on the app during training.

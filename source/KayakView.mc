@@ -1,6 +1,5 @@
 using Toybox.Graphics;
 using Toybox.WatchUi;
-using Toybox.System;
 
 class KayakView extends WatchUi.View {
     function initialize() {
@@ -10,27 +9,37 @@ class KayakView extends WatchUi.View {
     function onUpdate(dc) {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
+
         var width = dc.getWidth();
-        var y = 16;
-        drawCentered(dc, "KAYAK", y, Graphics.FONT_MEDIUM);
-        y += 38;
-        drawCentered(dc, KayakState.running ? "EDZES FOLYAMATBAN" : "SELECT: INDÍT / LEÁLLÍT", y, Graphics.FONT_XTINY);
-        y += 34;
-        drawCentered(dc, KayakState.strokes.toString(), y, Graphics.FONT_NUMBER_HUGE);
-        y += 68;
-        drawCentered(dc, "CSAPAS", y, Graphics.FONT_XTINY);
-        y += 24;
-        drawCentered(dc, KayakState.cadence().toString() + " csapas/perc", y, Graphics.FONT_MEDIUM);
-        y += 34;
-        drawCentered(dc, formatTime(KayakState.elapsedSeconds), y, Graphics.FONT_SMALL);
-        y += 24;
+        var height = dc.getHeight();
+        drawCentered(dc, "KAYAK STROKE", width, 18, Graphics.FONT_SMALL);
+
+        var status = KayakState.running ? "MÉRÉS FOLYAMATBAN" :
+            (KayakState.hasStarted ? "SZÜNETEL" : "SELECT: INDÍTÁS");
+        drawCentered(dc, status, width, 54, Graphics.FONT_XTINY);
+
+        drawCentered(dc, KayakState.strokes.toString(), width,
+            height / 2 - 100, Graphics.FONT_NUMBER_H田GE);
+        drawCentered(dc, "CSAPÁS", width, height / 2 - 32, Graphics.FONT_XTINY);
+
+        drawCentered(dc, KayakState.cadence().toString() + " csapás/perc",
+            width, height / 2 + 12, Graphics.FONT_MEDIUM);
+        drawCentered(dc, formatTime(KayakState.elapsedSeconds),
+            width, height / 2 + 52, Graphics.FONT_SMALL);
+
         if (!KayakState.sensorAvailable) {
-            drawCentered(dc, "ERZEKELŐ NEM ELÉRHETO", y, Graphics.FONT_XTINY);
+            drawCentered(dc, "NINCS ÉRZÉKELŐADAT", width,
+                height - 46, Graphics.FONT_XTINY);
+        } else if (!KayakState.running) {
+            drawCentered(dc, "MENU: NULLÁZÁS", width,
+                height - 46, Graphics.FONT_XTINY);
+        } else {
+            drawCentered(dc, "SELECT: SZÜNET  |  BACK: LEÁLLÍT", width,
+                height - 46, Graphics.FONT_XTINY);
         }
     }
 
-    function drawCentered(dc, text, y, font) {
-        var width = dc.getWidth();
+    function drawCentered(dc, text, width, y, font) {
         dc.drawText(width / 2, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -51,18 +60,33 @@ class KayakDelegate extends WatchUi.BehaviorDelegate {
         if (KayakState.running) {
             KayakState.running = false;
         } else {
+            if (!KayakState.hasStarted) {
+                KayakState.resetSession();
+                KayakState.hasStarted = true;
+            }
             KayakState.running = true;
+            KayakState.resetDetector();
         }
         WatchUi.requestUpdate();
         return true;
     }
 
     function onBack() {
-        if (KayakState.running) {
+        if (KayakState.running || KayakState.hasStarted) {
             KayakState.running = false;
+            KayakState.hasStarted = false;
             WatchUi.requestUpdate();
             return true;
         }
         return false;
+    }
+
+    function onMenu() {
+        if (!KayakState.running) {
+            KayakState.resetSession();
+            KayakState.hasStarted = false;
+            WatchUi.requestUpdate();
+        }
+        return true;
     }
 }

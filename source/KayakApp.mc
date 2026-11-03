@@ -1,10 +1,10 @@
 using Toybox.Application;
 using Toybox.Sensor;
+using Toybox.System;
 using Toybox.Timer;
 using Toybox.WatchUi;
 
 class KayakApp extends Application.AppBase {
-    var _view;
     var _timer;
 
     function initialize() {
@@ -13,20 +13,23 @@ class KayakApp extends Application.AppBase {
     }
 
     function getInitialView() {
-        _view = new KayakView();
-        return [_view, new KayakDelegate()];
+        return [new KayakView(), new KayakDelegate()];
     }
 
     function onStart(state) {
         KayakState.running = false;
-        KayakState.lastMagnitude = 0.0;
-        KayakState.noiseFloor = 0.0;
-        KayakState.lastStrokeTime = 0;
+        KayakState.resetDetector();
+        KayakState.sensorAvailable = true;
+
         try {
-            Sensor.registerSensorDataListener(method(:onSensorData), { :period => 1, :accelerometer => true });
+            Sensor.registerSensorDataListener(method(:onSensorData), {
+                :period => 1,
+                :accelerometer => true
+            });
         } catch (e) {
             KayakState.sensorAvailable = false;
         }
+
         _timer = new Timer.Timer();
         _timer.start(method(:onTick), 1000, true);
     }
@@ -34,10 +37,12 @@ class KayakApp extends Application.AppBase {
     function onStop(state) {
         if (_timer != null) {
             _timer.stop();
+            _timer = null;
         }
         try {
             Sensor.unregisterSensorDataListener();
         } catch (e) {
+            // The listener may not have registered on devices without sensor support.
         }
     }
 
@@ -52,51 +57,86 @@ class KayakApp extends Application.AppBase {
         if (!KayakState.running || data == null || data.accel == null) {
             return;
         }
-        var a = data.accel;
-        if (a.size() < 3) {
+
+        var acceleration = data.accel;
+        if (acceleration.size() < 3) {
             return;
         }
 
-        // Acceleration magnitude removes dependence on how the watch is oriented on the kayak.
-        var magnitude = Math.sqrt((a[0] * a[0]) + (a[1] * a[1]) + (a[2] * a[2]));
+        // Magnitude makes the detector less sensitive to watch orientation.
+        var magnitude = Math.sqrt(
+            (acceleration[0] * acceleration[0]) +
+            (acceleration[1] * acceleration[1]) +
+            (acceleration[2] * acceleration[2])
+        );
+
+        // The first sample after start/resume is only a baseline, not a stroke.
+        if (!KayakState.hasMagnitude) {
+            KayakState.lastMagnitude = magnitude;
+            KayakState.hasMagnitude = true;
+            return;
+        }
+
         var delta = magnitude - KayakState.lastMagnitude;
         KayakState.lastMagnitude = magnitude;
-        var absDelta = Math.abs(delta);
-
-        // Slowly learn the normal movement level, then count a sufficiently strong local change.
-        KayakState.noiseFloor = (KayakState.noiseFloor * 0.97) + (absDelta * 0.03);
+        var change = Math.abs(delta);
         var threshold = Math.max(0.35, KayakState.noiseFloor * 3.0);
         var now = System.getTimer();
-        if (delta > threshold && (now - KayakState.lastStrokeTime) > 350) {
+
+        // Count a sufficiently strong upward motion change, with a refractory period
+        // to avoid counting the same paddle stroke more than once.
+        if (delta > threshold && (now - KayakState.lastStrokeTime) > 400) {
             KayakState.strokes += 1;
             KayakState.lastStrokeTime = now;
             KayakState.strokeTimes.add(now);
-            while (KayakState.strokeTimes.size() > 30) {
-                KayakState.strokeTimes.remove(0);
-            }
+        } else if (change < threshold) {
+            // Adapt to ordinary movement without letting a detected stroke inflate
+            // the threshold and suppress subsequent strokes.
+            KayakState.noiseFloor = (KayakState.noiseFloor * 0.97) + (change * 0.03);
+        }
+
+        // Keep only recent strokes; cadence is strokes in the last minute.
+        while (KayakState.strokeTimes.size() > 0 &&
+               (now - KayakState.strokeTimes[0]) > 60000) {
+            KayakState.strokeTimes.remove(0);
         }
     }
 }
 
 class KayakState {
     static var running = false;
+    static var hasStarted = false;
     static var sensorAvailable = true;
     static var strokes = 0;
     static var elapsedSeconds = 0;
     static var lastMagnitude = 0.0;
+    static var hasMagnitude = false;
     static var noiseFloor = 0.0;
     static var lastStrokeTime = 0;
     static var strokeTimes = [];
 
     static function reset() {
         running = false;
+        hasStarted = false;
         sensorAvailable = true;
         strokes = 0;
         elapsedSeconds = 0;
+        strokeTimes = [];
+        resetDetector();
+    }
+
+    static function resetDetector() {
         lastMagnitude = 0.0;
+        hasMagnitude = false;
         noiseFloor = 0.0;
         lastStrokeTime = 0;
+    }
+
+    static function resetSession() {
+        strokes = 0;
+        elapsedSeconds = 0;
         strokeTimes = [];
+        resetDetector();
     }
 
     static function cadence() {
