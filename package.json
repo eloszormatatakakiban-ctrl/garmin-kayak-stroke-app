@@ -1,0 +1,13 @@
+{
+  "name": "garmin-kayak-stroke-webapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Companion web dashboard for the Garmin Kayak Stroke app.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

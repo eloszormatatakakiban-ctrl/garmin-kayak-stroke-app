@@ -1,0 +1,49 @@
+const form = document.getElementById('session-form');
+
+if (form) {
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      sessionId: document.getElementById('sessionId').value,
+      strokes: Number(document.getElementById('strokesInput').value),
+      spm: Number(document.getElementById('spmInput').value),
+      duration: Number(document.getElementById('durationInput').value),
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('/api/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Request failed');
+      }
+
+      document.getElementById('strokes').textContent = String(payload.strokes);
+      document.getElementById('spm').textContent = String(payload.spm.toFixed(1));
+      document.getElementById('duration').textContent = formatSeconds(payload.duration);
+      document.getElementById('confidence').textContent = '88%';
+
+      console.log('Dashboard accepted payload:', result);
+    } catch (error) {
+      console.error('Dashboard error:', error);
+      alert('Could not send the session payload.');
+    }
+  });
+}
+
+function formatSeconds(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const formatNumber = (value) => String(value).padStart(2, '0');
+  return `${formatNumber(hours)}:${formatNumber(minutes)}:${formatNumber(seconds)}`;
+}
