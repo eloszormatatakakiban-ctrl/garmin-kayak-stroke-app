@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111b">
+  <title>Kayak Stroke – edzés-dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div><p class="eyebrow">Garmin Connect IQ kiegészítő</p><h1>Kayak Stroke</h1><p class="intro">Kajakos csapásszámoló – webes próba-dashboard</p></div>
+      <span class="status" id="api-status">Szerver ellenőrzése…</span>
+    </header>
+    <section class="stats">
+      <article><span>Csapások</span><strong id="strokes">—</strong></article>
+      <article><span>SPM</span><strong id="spm">—</strong></article>
+      <article><span>Időtartam</span><strong id="duration">—</strong></article>
+      <article><span>Adatforrás</span><strong class="small" id="source">Nincs adat</strong></article>
+    </section>
+    <section class="panel">
+      <h2>Próbaadat küldése</h2>
+      <p class="muted">Ezzel ellenőrizheted a webes szervert. Ez jelenleg nem kapcsolódik a Garmin órához, és a próbaadatot nem menti tartósan.</p>
+      <form id="session-form">
+        <div class="fields">
+          <label>Munkamenet ID<input id="sessionId" value="teszt-001" required></label>
+          <label>Csapások száma<input id="strokesInput" type="number" min="0" value="128" required></label>
+          <label>SPM<input id="spmInput" type="number" min="0" step="0.1" value="28.4" required></label>
+          <label>Időtartam (másodperc)<input id="durationInput" type="number" min="0" value="765" required></label>
+        </div>
+        <button type="submit">Próbaadat küldése</button>
+        <p id="form-message" class="message" role="status"></p>
+      </form>
+    </section>
+    <footer>Prototípus · az óra és a weboldal automatikus szinkronja még nincs elkészítve.</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

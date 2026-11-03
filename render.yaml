@@ -1,11 +1,7 @@
 services:
   - type: web
     name: garmin-kayak-stroke-dashboard
-    runtime: node
+    runtime: python
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    rootDir: .
-    envVars:
-      - key: NODE_ENV
-        value: production
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app

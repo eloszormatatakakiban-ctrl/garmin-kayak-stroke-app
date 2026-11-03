@@ -1,49 +1,25 @@
-const form = document.getElementById('session-form');
-
-if (form) {
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const payload = {
-      sessionId: document.getElementById('sessionId').value,
-      strokes: Number(document.getElementById('strokesInput').value),
-      spm: Number(document.getElementById('spmInput').value),
-      duration: Number(document.getElementById('durationInput').value),
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      const response = await fetch('/api/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Request failed');
-      }
-
-      document.getElementById('strokes').textContent = String(payload.strokes);
-      document.getElementById('spm').textContent = String(payload.spm.toFixed(1));
-      document.getElementById('duration').textContent = formatSeconds(payload.duration);
-      document.getElementById('confidence').textContent = '88%';
-
-      console.log('Dashboard accepted payload:', result);
-    } catch (error) {
-      console.error('Dashboard error:', error);
-      alert('Could not send the session payload.');
-    }
-  });
-}
-
-function formatSeconds(totalSeconds) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const formatNumber = (value) => String(value).padStart(2, '0');
-  return `${formatNumber(hours)}:${formatNumber(minutes)}:${formatNumber(seconds)}`;
-}
+* { box-sizing: border-box; }
+:root { color-scheme: dark; --bg: #07111b; --panel: #101f30; --line: #284b6d; --cyan: #66d9ef; --green: #8dffb7; --text: #edf6ff; --muted: #a9bed1; }
+body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #07111b, #0e1d2c); color: var(--text); font-family: Arial, Helvetica, sans-serif; }
+.shell { max-width: 1000px; margin: auto; padding: 36px 20px 50px; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 26px; }
+.eyebrow { margin: 0 0 8px; color: var(--cyan); text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; }
+h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3rem); }
+.intro, .muted { color: var(--muted); line-height: 1.6; }
+.status { padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; }
+.status.online { color: var(--green); border-color: var(--green); }
+.status.offline { color: #ff9c6a; border-color: #ff9c6a; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 22px; }
+.stats article, .panel { padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
+.stats article { min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
+.stats span { color: var(--muted); text-transform: uppercase; font-size: .82rem; }
+.stats strong { font-size: clamp(1.7rem, 4vw, 2.4rem); }
+.stats .small { font-size: 1.1rem; }
+h2 { margin: 0 0 10px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 14px; margin: 18px 0; }
+label { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: .9rem; }
+input { width: 100%; padding: 12px; color: var(--text); background: #0d1b2a; border: 1px solid var(--line); border-radius: 9px; font-size: 1rem; }
+button { padding: 12px 18px; border: 0; border-radius: 10px; background: linear-gradient(135deg, var(--cyan), var(--green)); color: #03131e; font-weight: 800; cursor: pointer; }
+.message { min-height: 1.4em; color: var(--green); }
+footer { margin-top: 24px; color: var(--muted); font-size: .85rem; }
+@media (max-width: 600px) { .header { flex-direction: column; } }
