@@ -42,7 +42,7 @@ class KayakApp extends Application.AppBase {
         try {
             Sensor.unregisterSensorDataListener();
         } catch (e) {
-            // The listener may not have registered on devices without sensor support.
+            // Sensor registration may not be available on every device/profile.
         }
     }
 
@@ -50,6 +50,7 @@ class KayakApp extends Application.AppBase {
         if (KayakState.running) {
             KayakState.elapsedSeconds += 1;
         }
+        KayakState.pruneStrokeTimes(System.getTimer());
         WatchUi.requestUpdate();
     }
 
@@ -58,95 +59,165 @@ class KayakApp extends Application.AppBase {
             return;
         }
 
-        var acceleration = data.accel;
-        if (acceleration.size() < 3) {
+        var a = data.accel;
+        if (a.size() < 3) {
             return;
         }
 
-        // Magnitude makes the detector less sensitive to watch orientation.
-        var magnitude = Math.sqrt(
-            (acceleration[0] * acceleration[0]) +
-            (acceleration[1] * acceleration[1]) +
-            (acceleration[2] * acceleration[2])
+        var x = a[0];
+        var y = a[1];
+        var z = a[2];
+
+        // The watch is fixed to the boat. Learn the gravity direction in that
+        // mounting orientation, then measure acceleration relative to it.
+        if (!KayakState.hasGravity) {
+            KayakState.gravityX = x;
+            KayakState.gravityY = y;
+            KayakState.gravityZ = z;
+            KayakState.hasGravity = true;
+            return;
+        }
+
+        var dx = x - KayakState.gravityX;
+        var dy = y - KayakState.gravityY;
+        var dz = z - KayakState.gravityZ;
+        var motion = Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+        var gravityMagnitude = Math.sqrt(
+            (KayakState.gravityX * KayakState.gravityX) +
+            (KayakState.gravityY * KayakState.gravityY) +
+            (KayakState.gravityZ * KayakState.gravityZ)
         );
-
-        // The first sample after start/resume is only a baseline, not a stroke.
-        if (!KayakState.hasMagnitude) {
-            KayakState.lastMagnitude = magnitude;
-            KayakState.hasMagnitude = true;
-            return;
+        var verticalMotion = 0.0;
+        if (gravityMagnitude > 0.1) {
+            verticalMotion = Math.abs(
+                ((dx * KayakState.gravityX) +
+                 (dy * KayakState.gravityY) +
+                 (dz * KayakState.gravityZ)) / gravityMagnitude
+            );
         }
 
-        var delta = magnitude - KayakState.lastMagnitude;
-        KayakState.lastMagnitude = magnitude;
-        var change = Math.abs(delta);
-        var threshold = Math.max(0.35, KayakState.noiseFloor * 3.0);
-        var now = System.getTimer();
+        KayakState.motionMagnitude = motion;
+        KayakState.verticalAcceleration = verticalMotion;
+        KayakState.addVerticalSample(verticalMotion);
 
-        // Count a sufficiently strong upward motion change, with a refractory period
-        // to avoid counting the same paddle stroke more than once.
-        if (delta > threshold && (now - KayakState.lastStrokeTime) > 400) {
+        // Adapt the gravity estimate slowly. This avoids treating every paddle
+        // impulse as a change in the watch's mounting orientation.
+        var gravityAlpha = motion < 2.0 ? 0.015 : 0.002;
+        KayakState.gravityX += (x - KayakState.gravityX) * gravityAlpha;
+        KayakState.gravityY += (y - KayakState.gravityY) * gravityAlpha;
+        KayakState.gravityZ += (z - KayakState.gravityZ) * gravityAlpha;
+
+        var now = System.getTimer();
+        var threshold = Math.max(1.0, KayakState.noiseFloor * 3.0);
+
+        // Hysteresis arms the detector only after motion falls back below the
+        // low threshold. The refractory interval avoids duplicate counts.
+        if (motion < (threshold * 0.55)) {
+            KayakState.strokeArmed = true;
+        } else if (KayakState.strokeArmed && motion >= threshold &&
+                   (now - KayakState.lastStrokeTime) > 700) {
             KayakState.strokes += 1;
             KayakState.lastStrokeTime = now;
             KayakState.strokeTimes.add(now);
-        } else if (change < threshold) {
-            // Adapt to ordinary movement without letting a detected stroke inflate
-            // the threshold and suppress subsequent strokes.
-            KayakState.noiseFloor = (KayakState.noiseFloor * 0.97) + (change * 0.03);
+            KayakState.strokeArmed = false;
         }
 
-        // Keep only recent strokes; cadence is strokes in the last minute.
-        while (KayakState.strokeTimes.size() > 0 &&
-               (now - KayakState.strokeTimes[0]) > 60000) {
-            KayakState.strokeTimes.remove(0);
+        // Learn background movement only from low-amplitude samples so a stroke
+        // does not immediately raise its own detection threshold.
+        if (motion < threshold) {
+            KayakState.noiseFloor = (KayakState.noiseFloor * 0.98) + (motion * 0.02);
         }
+        KayakState.pruneStrokeTimes(now);
     }
 }
 
 class KayakState {
     static var running = false;
     static var hasStarted = false;
+    static var sessionFinished = false;
     static var sensorAvailable = true;
     static var strokes = 0;
     static var elapsedSeconds = 0;
-    static var lastMagnitude = 0.0;
-    static var hasMagnitude = false;
-    static var noiseFloor = 0.0;
-    static var lastStrokeTime = 0;
     static var strokeTimes = [];
+    static var verticalSamples = [];
+    static var gravityX = 0.0;
+    static var gravityY = 0.0;
+    static var gravityZ = 0.0;
+    static var hasGravity = false;
+    static var noiseFloor = 0.0;
+    static var motionMagnitude = 0.0;
+    static var verticalAcceleration = 0.0;
+    static var lastStrokeTime = 0;
+    static var strokeArmed = true;
 
     static function reset() {
         running = false;
         hasStarted = false;
+        sessionFinished = false;
         sensorAvailable = true;
-        strokes = 0;
-        elapsedSeconds = 0;
-        strokeTimes = [];
-        resetDetector();
+        resetSession();
     }
 
     static function resetDetector() {
-        lastMagnitude = 0.0;
-        hasMagnitude = false;
+        gravityX = 0.0;
+        gravityY = 0.0;
+        gravityZ = 0.0;
+        hasGravity = false;
         noiseFloor = 0.0;
+        motionMagnitude = 0.0;
+        verticalAcceleration = 0.0;
         lastStrokeTime = 0;
+        strokeArmed = true;
     }
 
     static function resetSession() {
         strokes = 0;
         elapsedSeconds = 0;
         strokeTimes = [];
+        verticalSamples = [];
         resetDetector();
     }
 
-    static function cadence() {
-        var now = System.getTimer();
-        var count = 0;
-        for (var i = 0; i < strokeTimes.size(); i += 1) {
-            if ((now - strokeTimes[i]) <= 60000) {
-                count += 1;
+    static function addVerticalSample(value) {
+        verticalSamples.add(value);
+        // Bounded rolling window for recent hull-motion diagnostics.
+        while (verticalSamples.size() > 30) {
+            verticalSamples.remove(0);
+        }
+    }
+
+    static function verticalRange() {
+        if (verticalSamples.size() == 0) {
+            return 0.0;
+        }
+        var low = verticalSamples[0];
+        var high = verticalSamples[0];
+        for (var i = 1; i < verticalSamples.size(); i += 1) {
+            if (verticalSamples[i] < low) {
+                low = verticalSamples[i];
+            }
+            if (verticalSamples[i] > high) {
+                high = verticalSamples[i];
             }
         }
-        return count;
+        return high - low;
+    }
+
+    static function pruneStrokeTimes(now) {
+        while (strokeTimes.size() > 0 && (now - strokeTimes[0]) > 60000) {
+            strokeTimes.remove(0);
+        }
+    }
+
+    static function cadence() {
+        return strokeTimes.size();
+    }
+
+    static function averageCadence() {
+        if (elapsedSeconds <= 0) {
+            return 0;
+        }
+        return (strokes * 60) / elapsedSeconds;
     }
 }

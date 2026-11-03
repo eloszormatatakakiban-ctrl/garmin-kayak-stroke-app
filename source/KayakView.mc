@@ -12,31 +12,43 @@ class KayakView extends WatchUi.View {
 
         var width = dc.getWidth();
         var height = dc.getHeight();
-        drawCentered(dc, "KAYAK STROKE", width, 18, Graphics.FONT_SMALL);
+        drawCentered(dc, "KAYAK ANALYTICS", width, 16, Graphics.FONT_SMALL);
 
-        var status = KayakState.running ? "MÉRÉS FOLYAMATBAN" :
-            (KayakState.hasStarted ? "SZÜNETEL" : "SELECT: INDÍTÁS");
-        drawCentered(dc, status, width, 54, Graphics.FONT_XTINY);
+        var status = KayakState.running ? "RÖGZÍTÉS" :
+            (KayakState.sessionFinished ? "EDZÉS LEÁLLÍTVA" :
+             (KayakState.hasStarted ? "SZÜNETEL" : "SELECT: INDÍTÁS"));
+        drawCentered(dc, status, width, 44, Graphics.FONT_XTINY);
 
         drawCentered(dc, KayakState.strokes.toString(), width,
-            height / 2 - 100, Graphics.FONT_NUMBER_H田GE);
-        drawCentered(dc, "CSAPÁS", width, height / 2 - 32, Graphics.FONT_XTINY);
+            height / 2 - 112, Graphics.FONT_NUMBER_HUGE);
+        drawCentered(dc, "CSAPÁS ÖSSZESEN", width,
+            height / 2 - 42, Graphics.FONT_XTINY);
+        drawCentered(dc, KayakState.cadence().toString() + " / PERC",
+            width, height / 2 - 7, Graphics.FONT_MEDIUM);
+        drawCentered(dc, "ÁTLAG " + KayakState.averageCadence().toString() + " / PERC",
+            width, height / 2 + 28, Graphics.FONT_XTINY);
+        drawCentered(dc, "IDŐ  " + formatTime(KayakState.elapsedSeconds),
+            width, height / 2 + 54, Graphics.FONT_SMALL);
 
-        drawCentered(dc, KayakState.cadence().toString() + " csapás/perc",
-            width, height / 2 + 12, Graphics.FONT_MEDIUM);
-        drawCentered(dc, formatTime(KayakState.elapsedSeconds),
-            width, height / 2 + 52, Graphics.FONT_SMALL);
-
-        if (!KayakState.sensorAvailable) {
-            drawCentered(dc, "NINCS ÉRZÉKELŐADAT", width,
-                height - 46, Graphics.FONT_XTINY);
-        } else if (!KayakState.running) {
-            drawCentered(dc, "MENU: NULLÁZÁS", width,
-                height - 46, Graphics.FONT_XTINY);
+        if (KayakState.sensorAvailable) {
+            drawCentered(dc, "HAJÓFÜGGŐLEGES MOZGÁS  " +
+                formatDecimal(KayakState.verticalRange()), width,
+                height / 2 + 86, Graphics.FONT_XTINY);
+            drawCentered(dc, "AKTUÁLIS GYORSULÁS  " +
+                formatDecimal(KayakState.verticalAcceleration), width,
+                height / 2 + 106, Graphics.FONT_XTINY);
         } else {
-            drawCentered(dc, "SELECT: SZÜNET  |  BACK: LEÁLLÍT", width,
-                height - 46, Graphics.FONT_XTINY);
+            drawCentered(dc, "GYORSULÁSÉRZÉKELŐ NEM ELÉRHETŐ", width,
+                height / 2 + 90, Graphics.FONT_XTINY);
         }
+
+        // Do not present an acceleration-only guess as measured watts.
+        drawCentered(dc, "WATT: ERŐMÉRŐ SZÜKSÉGES", width,
+            height - 48, Graphics.FONT_XTINY);
+
+        var controls = KayakState.running ? "SELECT: SZÜNET  BACK: LEÁLLÍT" :
+            "MENU: NULLÁZÁS";
+        drawCentered(dc, controls, width, height - 28, Graphics.FONT_XTINY);
     }
 
     function drawCentered(dc, text, width, y, font) {
@@ -49,6 +61,10 @@ class KayakView extends WatchUi.View {
         var secText = remainder < 10 ? "0" + remainder.toString() : remainder.toString();
         return minutes.toString() + ":" + secText;
     }
+
+    function formatDecimal(value) {
+        return (value * 100).toNumber().toString() + " x 0.01";
+    }
 }
 
 class KayakDelegate extends WatchUi.BehaviorDelegate {
@@ -60,9 +76,10 @@ class KayakDelegate extends WatchUi.BehaviorDelegate {
         if (KayakState.running) {
             KayakState.running = false;
         } else {
-            if (!KayakState.hasStarted) {
+            if (!KayakState.hasStarted || KayakState.sessionFinished) {
                 KayakState.resetSession();
                 KayakState.hasStarted = true;
+                KayakState.sessionFinished = false;
             }
             KayakState.running = true;
             KayakState.resetDetector();
@@ -75,6 +92,7 @@ class KayakDelegate extends WatchUi.BehaviorDelegate {
         if (KayakState.running || KayakState.hasStarted) {
             KayakState.running = false;
             KayakState.hasStarted = false;
+            KayakState.sessionFinished = true;
             WatchUi.requestUpdate();
             return true;
         }
@@ -85,6 +103,7 @@ class KayakDelegate extends WatchUi.BehaviorDelegate {
         if (!KayakState.running) {
             KayakState.resetSession();
             KayakState.hasStarted = false;
+            KayakState.sessionFinished = false;
             WatchUi.requestUpdate();
         }
         return true;
