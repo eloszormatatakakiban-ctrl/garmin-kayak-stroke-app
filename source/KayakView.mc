@@ -14,40 +14,39 @@ class KayakView extends WatchUi.View {
         var height = dc.getHeight();
         drawCentered(dc, "KAYAK ANALYTICS", width, 16, Graphics.FONT_SMALL);
 
-        var status = KayakState.running ? "RÖGZÍTÉS" :
-            (KayakState.sessionFinished ? "EDZÉS LEÁLLÍTVA" :
-             (KayakState.hasStarted ? "SZÜNETEL" : "SELECT: INDÍTÁS"));
+        var status = KayakState.running ? "RECORDING" :
+            (KayakState.sessionFinished ? "SESSION STOPPED" :
+             (KayakState.hasStarted ? "PAUSED" : "SELECT: START"));
         drawCentered(dc, status, width, 44, Graphics.FONT_XTINY);
 
         drawCentered(dc, KayakState.strokes.toString(), width,
-            height / 2 - 112, Graphics.FONT_NUMBER_HUGE);
-        drawCentered(dc, "CSAPÁS ÖSSZESEN", width,
+            height / 2 - 112, Graphics.FONT_NUMBER_XLARGE);
+        drawCentered(dc, "STROKES", width,
             height / 2 - 42, Graphics.FONT_XTINY);
-        drawCentered(dc, KayakState.cadence().toString() + " / PERC",
+        drawCentered(dc, KayakState.cadence().toString() + " / MIN",
             width, height / 2 - 7, Graphics.FONT_MEDIUM);
-        drawCentered(dc, "ÁTLAG " + KayakState.averageCadence().toString() + " / PERC",
+        drawCentered(dc, "AVG " + KayakState.averageCadence().toString() + " / MIN",
             width, height / 2 + 28, Graphics.FONT_XTINY);
-        drawCentered(dc, "IDŐ  " + formatTime(KayakState.elapsedSeconds),
+        drawCentered(dc, "TIME  " + formatTime(KayakState.elapsedSeconds),
             width, height / 2 + 54, Graphics.FONT_SMALL);
 
         if (KayakState.sensorAvailable) {
-            drawCentered(dc, "HAJÓFÜGGŐLEGES MOZGÁS  " +
+            drawCentered(dc, "HULL MOTION  " +
                 formatDecimal(KayakState.verticalRange()), width,
                 height / 2 + 86, Graphics.FONT_XTINY);
-            drawCentered(dc, "AKTUÁLIS GYORSULÁS  " +
+            drawCentered(dc, "ACCELERATION  " +
                 formatDecimal(KayakState.verticalAcceleration), width,
                 height / 2 + 106, Graphics.FONT_XTINY);
         } else {
-            drawCentered(dc, "GYORSULÁSÉRZÉKELŐ NEM ELÉRHETŐ", width,
+            drawCentered(dc, "ACCELEROMETER UNAVAILABLE", width,
                 height / 2 + 90, Graphics.FONT_XTINY);
         }
 
-        // Do not present an acceleration-only guess as measured watts.
-        drawCentered(dc, "WATT: ERŐMÉRŐ SZÜKSÉGES", width,
+        drawCentered(dc, "POWER REQUIRES A POWER METER", width,
             height - 48, Graphics.FONT_XTINY);
 
-        var controls = KayakState.running ? "SELECT: SZÜNET  BACK: LEÁLLÍT" :
-            "MENU: NULLÁZÁS";
+        var controls = KayakState.running ? "SELECT: PAUSE  BACK: STOP" :
+            "MENU: RESET";
         drawCentered(dc, controls, width, height - 28, Graphics.FONT_XTINY);
     }
 
