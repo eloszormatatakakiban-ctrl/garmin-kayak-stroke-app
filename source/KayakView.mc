@@ -14,38 +14,18 @@ class KayakDataField extends WatchUi.DataField {
     }
 
     function compute(info) {
-        // Cache built-in workout values. compute() and onUpdate() may run
-        // asynchronously, so onUpdate() only renders the latest cached values.
+        // Garmin workout metrics are supplied by the activity. Cache them here;
+        // compute() and onUpdate() are not guaranteed to run in sequence.
         if (info != null) {
-            if (info.currentSpeed != null) {
-                _speedText = (info.currentSpeed * 3.6).format("%.1f");
-            } else {
-                _speedText = "--";
-            }
-
-            if (info.currentHeartRate != null) {
-                _heartRateText = info.currentHeartRate.toNumber().toString();
-            } else {
-                _heartRateText = "--";
-            }
-
-            if (info.currentDistance != null) {
-                _distanceText = (info.currentDistance / 1000.0).format("%.2f");
-            } else {
-                _distanceText = "--";
-            }
-
-            if (info.timerTime != null) {
-                _timeText = formatTime(info.timerTime);
-            } else {
-                _timeText = "--:--";
-            }
-
-            if (info.currentPower != null) {
-                _powerText = info.currentPower.toNumber().toString();
-            } else {
-                _powerText = "--";
-            }
+            _speedText = info.currentSpeed != null ?
+                (info.currentSpeed * 3.6).format("%.1f") : "--";
+            _heartRateText = info.currentHeartRate != null ?
+                info.currentHeartRate.toNumber().toString() : "--";
+            _distanceText = info.currentDistance != null ?
+                (info.currentDistance / 1000.0).format("%.2f") : "--";
+            _timeText = info.timerTime != null ? formatTime(info.timerTime) : "--:--";
+            _powerText = info.currentPower != null ?
+                info.currentPower.toNumber().toString() : "--";
         }
         return KayakState.strokes;
     }
@@ -78,46 +58,70 @@ class KayakDataField extends WatchUi.DataField {
         var width = dc.getWidth();
         var height = dc.getHeight();
         var centerX = width / 2;
+        var compact = width < 300 || height < 300;
 
-        dc.drawText(centerX, height * 0.02, Graphics.FONT_XTINY,
-            "KAYAK  |  STROKES", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, height * 0.10, Graphics.FONT_LARGE,
+        // High-contrast, uncluttered hierarchy: stroke count first, then the
+        // standard workout values, followed by clearly marked estimates.
+        dc.drawText(centerX, 2, Graphics.FONT_XTINY, "KAYAK  •  LIVE",
+            Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height * 0.09, Graphics.FONT_LARGE,
             KayakState.strokes.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, height * 0.29, Graphics.FONT_XTINY,
+            "STROKES", Graphics.TEXT_JUSTIFY_CENTER);
 
-        var forceText = "--";
-        var stabilityText = "--";
+        var leftX = width * 0.27;
+        var rightX = width * 0.73;
+        var y1 = height * 0.40;
+        var y2 = height * 0.54;
+        var y3 = height * 0.68;
+        drawMetric(dc, leftX, y1, "SPEED", _speedText + " km/h");
+        drawMetric(dc, rightX, y1, "HEART", _heartRateText + " bpm");
+        drawMetric(dc, leftX, y2, "DISTANCE", _distanceText + " km");
+        drawMetric(dc, rightX, y2, "TIME", _timeText);
+
+        var forceText = KayakState.sensorAvailable ?
+            KayakState.forceProxy.format("%.1f") + " g*" : "--";
+        var stabilityText = KayakState.sensorAvailable ?
+            KayakState.stability.toNumber().toString() + "%*" : "--";
         var staminaText = KayakState.staminaEstimate.toNumber().toString() + "%*";
-        if (KayakState.sensorAvailable) {
-            forceText = KayakState.forceProxy.format("%.2f") + " g*";
-            stabilityText = KayakState.stability.toNumber().toString() + "%*";
+
+        if (!compact) {
+            drawMetric(dc, leftX, y3, "POWER", _powerText + " W");
+            drawMetric(dc, rightX, y3, "FORCE", forceText);
+            dc.drawText(centerX, height * 0.82, Graphics.FONT_XTINY,
+                "STAMINA " + staminaText + "   STABILITY " + stabilityText,
+                Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, height * 0.93, Graphics.FONT_XTINY,
+                "*ESTIMATES  |  POWER NEEDS A METER",
+                Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            dc.drawText(centerX, y3, Graphics.FONT_XTINY,
+                "POWER " + _powerText + " W  |  FORCE " + forceText,
+                Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, height * 0.82, Graphics.FONT_XTINY,
+                "STAMINA " + staminaText + "  STAB " + stabilityText,
+                Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, height * 0.93, Graphics.FONT_XTINY,
+                "*ESTIMATES", Graphics.TEXT_JUSTIFY_CENTER);
         }
+    }
 
-        var row1 = height * 0.37;
-        var row2 = height * 0.50;
-        var row3 = height * 0.63;
-        var row4 = height * 0.76;
-        dc.drawText(centerX, row1, Graphics.FONT_SMALL,
-            "SPD " + _speedText + " km/h   HR " + _heartRateText,
-            Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, row2, Graphics.FONT_SMALL,
-            "DIST " + _distanceText + " km   TIME " + _timeText,
-            Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, row3, Graphics.FONT_SMALL,
-            "W " + _powerText + "   FORCE " + forceText,
-            Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, row4, Graphics.FONT_SMALL,
-            "STAMINA " + staminaText + "  STAB " + stabilityText,
-            Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(centerX, height * 0.91, Graphics.FONT_XTINY,
-            "*ESTIMATES; WATTS FROM POWER METER", Graphics.TEXT_JUSTIFY_CENTER);
+    function drawMetric(dc, x, y, title, value) {
+        dc.drawText(x, y, Graphics.FONT_XTINY, title, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y + 13, Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function formatTime(seconds) {
         var totalSeconds = seconds.toNumber();
-        var minutes = totalSeconds / 60;
+        var hours = totalSeconds / 3600;
+        var minutes = (totalSeconds % 3600) / 60;
         var remainder = totalSeconds % 60;
-        var secText = remainder < 10 ? "0" + remainder.toString() : remainder.toString();
-        return minutes.toString() + ":" + secText;
+        var minuteText = minutes < 10 ? "0" + minutes.toString() : minutes.toString();
+        var secondText = remainder < 10 ? "0" + remainder.toString() : remainder.toString();
+        if (hours > 0) {
+            var hourText = hours < 10 ? "0" + hours.toString() : hours.toString();
+            return hourText + ":" + minuteText + ":" + secondText;
+        }
+        return minutes.toString() + ":" + secondText;
     }
 }
