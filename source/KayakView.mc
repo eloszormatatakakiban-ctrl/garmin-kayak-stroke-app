@@ -20,7 +20,7 @@ class KayakView extends WatchUi.View {
         drawCentered(dc, status, width, 44, Graphics.FONT_XTINY);
 
         drawCentered(dc, KayakState.strokes.toString(), width,
-            height / 2 - 112, Graphics.FONT_NUMBER_XLARGE);
+            height / 2 - 112, Graphics.FONT_LARGE);
         drawCentered(dc, "STROKES", width,
             height / 2 - 42, Graphics.FONT_XTINY);
         drawCentered(dc, KayakState.cadence().toString() + " / MIN",
