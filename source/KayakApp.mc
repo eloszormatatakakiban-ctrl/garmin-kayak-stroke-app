@@ -75,16 +75,13 @@ class KayakApp extends Application.AppBase {
             count = zs.size();
         }
 
-        // Connect IQ accelerometer samples are in milli-G; convert to G.
         for (var i = 0; i < count; i += 1) {
             processAccelerometerSample(xs[i] / 1000.0,
                 ys[i] / 1000.0, zs[i] / 1000.0);
         }
     }
 
-    function processAccelerometerSample(x as Number, y as Number, z as Number) as Void {
-        // The watch is fixed to the boat. Learn gravity direction in that
-        // mounting orientation, then measure acceleration relative to it.
+    function processAccelerometerSample(x, y, z) as Void {
         if (!KayakState.hasGravity) {
             KayakState.gravityX = x;
             KayakState.gravityY = y;
@@ -116,8 +113,6 @@ class KayakApp extends Application.AppBase {
         KayakState.verticalAcceleration = verticalMotion;
         KayakState.addVerticalSample(verticalMotion);
 
-        // Adapt the gravity estimate slowly to avoid treating every paddle
-        // impulse as a change in the watch's mounting orientation.
         var gravityAlpha = motion < 2.0 ? 0.015 : 0.002;
         KayakState.gravityX += (x - KayakState.gravityX) * gravityAlpha;
         KayakState.gravityY += (y - KayakState.gravityY) * gravityAlpha;
@@ -126,8 +121,6 @@ class KayakApp extends Application.AppBase {
         var now = System.getTimer();
         var threshold = Math.max(0.08, KayakState.noiseFloor * 3.0);
 
-        // Hysteresis arms the detector after motion falls below the low
-        // threshold; the refractory period avoids duplicate counts.
         if (motion < (threshold * 0.55)) {
             KayakState.strokeArmed = true;
         } else if (KayakState.strokeArmed && motion >= threshold &&
@@ -138,7 +131,6 @@ class KayakApp extends Application.AppBase {
             KayakState.strokeArmed = false;
         }
 
-        // Learn background movement only from low-amplitude samples.
         if (motion < threshold) {
             KayakState.noiseFloor = (KayakState.noiseFloor * 0.98) + (motion * 0.02);
         }
@@ -193,14 +185,14 @@ class KayakState {
         resetDetector();
     }
 
-    static function addVerticalSample(value as Number) as Void {
+    static function addVerticalSample(value) {
         verticalSamples.add(value);
         while (verticalSamples.size() > 30) {
             verticalSamples.remove(0);
         }
     }
 
-    static function verticalRange() as Number {
+    static function verticalRange() {
         if (verticalSamples.size() == 0) {
             return 0.0;
         }
@@ -217,17 +209,17 @@ class KayakState {
         return high - low;
     }
 
-    static function pruneStrokeTimes(now as Number) as Void {
+    static function pruneStrokeTimes(now) {
         while (strokeTimes.size() > 0 && (now - strokeTimes[0]) > 60000) {
             strokeTimes.remove(0);
         }
     }
 
-    static function cadence() as Number {
+    static function cadence() {
         return strokeTimes.size();
     }
 
-    static function averageCadence() as Number {
+    static function averageCadence() {
         if (elapsedSeconds <= 0) {
             return 0;
         }
