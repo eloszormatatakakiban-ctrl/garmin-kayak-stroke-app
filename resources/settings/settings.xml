@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <setting propertyKey="@Properties.Theme" title="@Strings.ThemeTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.ThemeGreen</listEntry>
+            <listEntry value="1">@Strings.ThemeBlue</listEntry>
+            <listEntry value="2">@Strings.ThemeYellow</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.CompactLayout" title="@Strings.CompactTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowSpeed" title="@Strings.ShowSpeedTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowHeartRate" title="@Strings.ShowHeartRateTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowDistance" title="@Strings.ShowDistanceTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowTimer" title="@Strings.ShowTimerTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowPower" title="@Strings.ShowPowerTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowEstimates" title="@Strings.ShowEstimatesTitle">
+        <settingConfig type="boolean" />
+    </setting>
+</settings>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <property id="Theme" type="number">0</property>
+    <property id="CompactLayout" type="boolean">false</property>
+    <property id="ShowSpeed" type="boolean">true</property>
+    <property id="ShowHeartRate" type="boolean">true</property>
+    <property id="ShowDistance" type="boolean">true</property>
+    <property id="ShowTimer" type="boolean">true</property>
+    <property id="ShowPower" type="boolean">true</property>
+    <property id="ShowEstimates" type="boolean">true</property>
+</properties>

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <strings>
     <string id="AppName">Kayak Stroke</string>
+    <string id="ThemeTitle">Accent color</string>
+    <string id="ThemeGreen">Green</string>
+    <string id="ThemeBlue">Blue</string>
+    <string id="ThemeYellow">Yellow</string>
+    <string id="CompactTitle">Compact layout</string>
+    <string id="ShowSpeedTitle">Show speed</string>
+    <string id="ShowHeartRateTitle">Show heart rate</string>
+    <string id="ShowDistanceTitle">Show distance</string>
+    <string id="ShowTimerTitle">Show timer</string>
+    <string id="ShowPowerTitle">Show power</string>
+    <string id="ShowEstimatesTitle">Show motion estimates</string>
 </strings>

@@ -1,3 +1,4 @@
+using Toybox.Application;
 using Toybox.Graphics;
 using Toybox.WatchUi;
 
@@ -14,8 +15,7 @@ class KayakDataField extends WatchUi.DataField {
     }
 
     function compute(info) {
-        // Garmin workout metrics are supplied by the activity. Cache them here;
-        // compute() and onUpdate() are not guaranteed to run in sequence.
+        // Cache Garmin workout values because compute() and onUpdate() can run asynchronously.
         if (info != null) {
             _speedText = info.currentSpeed != null ?
                 (info.currentSpeed * 3.6).format("%.1f") : "--";
@@ -52,63 +52,93 @@ class KayakDataField extends WatchUi.DataField {
     }
 
     function onUpdate(dc) {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
-
         var width = dc.getWidth();
         var height = dc.getHeight();
         var centerX = width / 2;
-        var compact = width < 300 || height < 300;
+        var background = Graphics.COLOR_BLACK;
+        var foreground = Graphics.COLOR_WHITE;
+        var accent = getAccentColor();
+        var compact = getSetting("CompactLayout", false);
 
-        // High-contrast, uncluttered hierarchy: stroke count first, then the
-        // standard workout values, followed by clearly marked estimates.
-        dc.drawText(centerX, 2, Graphics.FONT_XTINY, "KAYAK  •  LIVE",
+        dc.setColor(foreground, background);
+        dc.clear();
+        dc.drawText(centerX, 2, Graphics.FONT_XTINY, "KAYAK  |  LIVE",
             Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, height * 0.09, Graphics.FONT_LARGE,
+
+        dc.setColor(accent, background);
+        dc.drawText(centerX, height * 0.09, compact ? Graphics.FONT_MEDIUM : Graphics.FONT_LARGE,
             KayakState.strokes.toString(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, height * 0.29, Graphics.FONT_XTINY,
-            "STROKES", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(foreground, background);
+        dc.drawText(centerX, height * 0.27, Graphics.FONT_XTINY, "STROKES",
+            Graphics.TEXT_JUSTIFY_CENTER);
 
         var leftX = width * 0.27;
         var rightX = width * 0.73;
-        var y1 = height * 0.40;
-        var y2 = height * 0.54;
-        var y3 = height * 0.68;
-        drawMetric(dc, leftX, y1, "SPEED", _speedText + " km/h");
-        drawMetric(dc, rightX, y1, "HEART", _heartRateText + " bpm");
-        drawMetric(dc, leftX, y2, "DISTANCE", _distanceText + " km");
-        drawMetric(dc, rightX, y2, "TIME", _timeText);
+        var row1 = height * 0.38;
+        var row2 = height * 0.52;
+        var row3 = height * 0.66;
+        var row4 = height * 0.80;
+        var showSpeed = getSetting("ShowSpeed", true);
+        var showHeart = getSetting("ShowHeartRate", true);
+        var showDistance = getSetting("ShowDistance", true);
+        var showTimer = getSetting("ShowTimer", true);
+        var showPower = getSetting("ShowPower", true);
+        var showEstimates = getSetting("ShowEstimates", true);
 
-        var forceText = KayakState.sensorAvailable ?
-            KayakState.forceProxy.format("%.1f") + " g*" : "--";
-        var stabilityText = KayakState.sensorAvailable ?
-            KayakState.stability.toNumber().toString() + "%*" : "--";
-        var staminaText = KayakState.staminaEstimate.toNumber().toString() + "%*";
-
-        if (!compact) {
-            drawMetric(dc, leftX, y3, "POWER", _powerText + " W");
-            drawMetric(dc, rightX, y3, "FORCE", forceText);
-            dc.drawText(centerX, height * 0.82, Graphics.FONT_XTINY,
+        if (showSpeed) {
+            drawMetric(dc, leftX, row1, "SPEED", _speedText + " km/h", accent, foreground, background);
+        }
+        if (showHeart) {
+            drawMetric(dc, rightX, row1, "HEART", _heartRateText + " bpm", accent, foreground, background);
+        }
+        if (showDistance) {
+            drawMetric(dc, leftX, row2, "DISTANCE", _distanceText + " km", accent, foreground, background);
+        }
+        if (showTimer) {
+            drawMetric(dc, rightX, row2, "TIME", _timeText, accent, foreground, background);
+        }
+        if (showPower) {
+            drawMetric(dc, leftX, row3, "POWER", _powerText + " W", accent, foreground, background);
+        }
+        if (showEstimates) {
+            var forceText = KayakState.sensorAvailable ?
+                KayakState.forceProxy.format("%.1f") + " g*" : "--";
+            var stabilityText = KayakState.sensorAvailable ?
+                KayakState.stability.toNumber().toString() + "%*" : "--";
+            var staminaText = KayakState.staminaEstimate.toNumber().toString() + "%*";
+            drawMetric(dc, rightX, row3, "MOTION*", forceText, accent, foreground, background);
+            dc.setColor(foreground, background);
+            dc.drawText(centerX, row4, Graphics.FONT_XTINY,
                 "STAMINA " + staminaText + "   STABILITY " + stabilityText,
                 Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, height * 0.93, Graphics.FONT_XTINY,
-                "*ESTIMATES  |  POWER NEEDS A METER",
-                Graphics.TEXT_JUSTIFY_CENTER);
-        } else {
-            dc.drawText(centerX, y3, Graphics.FONT_XTINY,
-                "POWER " + _powerText + " W  |  FORCE " + forceText,
-                Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, height * 0.82, Graphics.FONT_XTINY,
-                "STAMINA " + staminaText + "  STAB " + stabilityText,
-                Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, height * 0.93, Graphics.FONT_XTINY,
-                "*ESTIMATES", Graphics.TEXT_JUSTIFY_CENTER);
         }
+
+        dc.setColor(foreground, background);
+        dc.drawText(centerX, height * 0.93, Graphics.FONT_XTINY,
+            showPower ? "*MOTION ESTIMATE  |  W NEEDS POWER METER" : "*MOTION VALUES ARE ESTIMATES",
+            Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function drawMetric(dc, x, y, title, value) {
+    function drawMetric(dc, x, y, title, value, accent, foreground, background) {
+        dc.setColor(accent, background);
         dc.drawText(x, y, Graphics.FONT_XTINY, title, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(foreground, background);
         dc.drawText(x, y + 13, Graphics.FONT_SMALL, value, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function getSetting(name, fallback) {
+        var value = Application.getApp().getProperty(name);
+        return value == null ? fallback : value;
+    }
+
+    function getAccentColor() {
+        var theme = getSetting("Theme", 0);
+        if (theme == 1) {
+            return Graphics.COLOR_BLUE;
+        } else if (theme == 2) {
+            return Graphics.COLOR_YELLOW;
+        }
+        return Graphics.COLOR_GREEN;
     }
 
     function formatTime(seconds) {
