@@ -189,7 +189,7 @@ class KayakState {
     static function addVerticalSample(value as Lang.Float) as Void {
         verticalSamples.add(value);
         while (verticalSamples.size() > 30) {
-            verticalSamples.remove(0);
+            verticalSamples.remove(verticalSamples[0]);
         }
     }
 
@@ -212,7 +212,7 @@ class KayakState {
 
     static function pruneStrokeTimes(now as Lang.Number) as Void {
         while (strokeTimes.size() > 0 && (now - strokeTimes[0]) > 60000) {
-            strokeTimes.remove(0);
+            strokeTimes.remove(strokeTimes[0]);
         }
     }
 
