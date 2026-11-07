@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <setting propertyKey="@Properties.DetectionSignal" title="@Strings.SignalTitle">
+        <settingConfig type="numeric" min="0" max="4" />
+    </setting>
+    <setting propertyKey="@Properties.StrokeThreshold" title="@Strings.ThresholdTitle">
+        <settingConfig type="numeric" min="0.05" max="2.0" />
+    </setting>
+    <setting propertyKey="@Properties.MinimumInterval" title="@Strings.CooldownTitle">
+        <settingConfig type="numeric" min="300" max="2000" />
+    </setting>
+</settings>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <property id="DetectionSignal" type="number">0</property>
+    <property id="StrokeThreshold" type="number">0.18</property>
+    <property id="MinimumInterval" type="number">600</property>
+</properties>

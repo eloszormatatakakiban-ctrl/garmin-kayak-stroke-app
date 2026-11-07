@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<strings>
+    <string id="AppName">Kayak Stroke Data Field</string>
+    <string id="SignalTitle">Detection signal</string>
+    <string id="ThresholdTitle">Stroke threshold (g)</string>
+    <string id="CooldownTitle">Minimum interval (ms)</string>
+</strings>

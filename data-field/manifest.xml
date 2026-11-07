@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application id="b0b642c85a7b42acaac6fc61b43f1b92" type="watch-app" name="@Strings.AppName" entry="KayakFieldApp" minApiLevel="3.2.0" minSdkVersion="3.2.0">
+        <iq:products>
+            <iq:product id="fr970" />
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Sensor" />
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>
