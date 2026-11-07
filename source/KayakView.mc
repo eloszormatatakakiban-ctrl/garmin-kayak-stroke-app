@@ -2,8 +2,11 @@ using Toybox.Graphics;
 using Toybox.WatchUi;
 
 class KayakView extends WatchUi.View {
+    var _kayakArt;
+
     function initialize() {
         View.initialize();
+        _kayakArt = null;
     }
 
     function onUpdate(dc) {
@@ -17,7 +20,14 @@ class KayakView extends WatchUi.View {
         var status = KayakState.running ? "RECORDING" :
             (KayakState.sessionFinished ? "SESSION STOPPED" :
              (KayakState.hasStarted ? "PAUSED" : "SELECT: START"));
-        drawCentered(dc, status, width, 44, Graphics.FONT_XTINY);
+        drawCentered(dc, status, width, 42, Graphics.FONT_XTINY);
+
+        if (_kayakArt == null) {
+            _kayakArt = WatchUi.loadResource(Rez.Drawables.KayakArt);
+        }
+        if (_kayakArt != null) {
+            dc.drawBitmap((width - 120) / 2, 55, _kayakArt);
+        }
 
         drawCentered(dc, KayakState.strokes.toString(), width,
             height / 2 - 112, Graphics.FONT_LARGE);
