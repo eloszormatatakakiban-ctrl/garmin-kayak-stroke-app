@@ -146,8 +146,8 @@ class KayakState {
     static var sensorAvailable = true;
     static var strokes = 0;
     static var elapsedSeconds = 0;
-    static var strokeTimes as Array<Lang.Number> = [];
-    static var verticalSamples as Array<Lang.Float> = [];
+    static var strokeTimes as Lang.Array<Lang.Number> = [];
+    static var verticalSamples as Lang.Array<Lang.Float> = [];
     static var gravityX = 0.0;
     static var gravityY = 0.0;
     static var gravityZ = 0.0;
