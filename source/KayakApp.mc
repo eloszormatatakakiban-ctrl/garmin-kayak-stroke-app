@@ -16,15 +16,15 @@ class KayakApp extends Application.AppBase {
         return [new KayakView(), new KayakDelegate()];
     }
 
-    function onStart(state) {
+    function onStart(state) as Void {
         KayakState.running = false;
         KayakState.resetDetector();
         KayakState.sensorAvailable = true;
 
         try {
             Sensor.registerSensorDataListener(method(:onSensorData), {
-                :period => 1,
-                :accelerometer => true
+                :period => 100,
+                :accelerometer => { :enabled => true }
             });
         } catch (e) {
             KayakState.sensorAvailable = false;
@@ -34,7 +34,7 @@ class KayakApp extends Application.AppBase {
         _timer.start(method(:onTick), 1000, true);
     }
 
-    function onStop(state) {
+    function onStop(state) as Void {
         if (_timer != null) {
             _timer.stop();
             _timer = null;
@@ -46,7 +46,7 @@ class KayakApp extends Application.AppBase {
         }
     }
 
-    function onTick() {
+    function onTick() as Void {
         if (KayakState.running) {
             KayakState.elapsedSeconds += 1;
         }
@@ -54,21 +54,36 @@ class KayakApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    function onSensorData(data) {
-        if (!KayakState.running || data == null || data.accel == null) {
+    function onSensorData(data as Sensor.SensorData) as Void {
+        if (!KayakState.running || data == null || data.accelerometerData == null) {
             return;
         }
 
-        var a = data.accel;
-        if (a.size() < 3) {
+        var accel = data.accelerometerData;
+        var xs = accel.x;
+        var ys = accel.y;
+        var zs = accel.z;
+        if (xs == null || ys == null || zs == null) {
             return;
         }
 
-        var x = a[0];
-        var y = a[1];
-        var z = a[2];
+        var count = xs.size();
+        if (ys.size() < count) {
+            count = ys.size();
+        }
+        if (zs.size() < count) {
+            count = zs.size();
+        }
 
-        // The watch is fixed to the boat. Learn the gravity direction in that
+        // Connect IQ accelerometer samples are in milli-G; convert to G.
+        for (var i = 0; i < count; i += 1) {
+            processAccelerometerSample(xs[i] / 1000.0,
+                ys[i] / 1000.0, zs[i] / 1000.0);
+        }
+    }
+
+    function processAccelerometerSample(x as Number, y as Number, z as Number) as Void {
+        // The watch is fixed to the boat. Learn gravity direction in that
         // mounting orientation, then measure acceleration relative to it.
         if (!KayakState.hasGravity) {
             KayakState.gravityX = x;
@@ -101,7 +116,7 @@ class KayakApp extends Application.AppBase {
         KayakState.verticalAcceleration = verticalMotion;
         KayakState.addVerticalSample(verticalMotion);
 
-        // Adapt the gravity estimate slowly. This avoids treating every paddle
+        // Adapt the gravity estimate slowly to avoid treating every paddle
         // impulse as a change in the watch's mounting orientation.
         var gravityAlpha = motion < 2.0 ? 0.015 : 0.002;
         KayakState.gravityX += (x - KayakState.gravityX) * gravityAlpha;
@@ -109,10 +124,10 @@ class KayakApp extends Application.AppBase {
         KayakState.gravityZ += (z - KayakState.gravityZ) * gravityAlpha;
 
         var now = System.getTimer();
-        var threshold = Math.max(1.0, KayakState.noiseFloor * 3.0);
+        var threshold = Math.max(0.08, KayakState.noiseFloor * 3.0);
 
-        // Hysteresis arms the detector only after motion falls back below the
-        // low threshold. The refractory interval avoids duplicate counts.
+        // Hysteresis arms the detector after motion falls below the low
+        // threshold; the refractory period avoids duplicate counts.
         if (motion < (threshold * 0.55)) {
             KayakState.strokeArmed = true;
         } else if (KayakState.strokeArmed && motion >= threshold &&
@@ -123,8 +138,7 @@ class KayakApp extends Application.AppBase {
             KayakState.strokeArmed = false;
         }
 
-        // Learn background movement only from low-amplitude samples so a stroke
-        // does not immediately raise its own detection threshold.
+        // Learn background movement only from low-amplitude samples.
         if (motion < threshold) {
             KayakState.noiseFloor = (KayakState.noiseFloor * 0.98) + (motion * 0.02);
         }
@@ -179,15 +193,14 @@ class KayakState {
         resetDetector();
     }
 
-    static function addVerticalSample(value) {
+    static function addVerticalSample(value as Number) as Void {
         verticalSamples.add(value);
-        // Bounded rolling window for recent hull-motion diagnostics.
         while (verticalSamples.size() > 30) {
             verticalSamples.remove(0);
         }
     }
 
-    static function verticalRange() {
+    static function verticalRange() as Number {
         if (verticalSamples.size() == 0) {
             return 0.0;
         }
@@ -204,17 +217,17 @@ class KayakState {
         return high - low;
     }
 
-    static function pruneStrokeTimes(now) {
+    static function pruneStrokeTimes(now as Number) as Void {
         while (strokeTimes.size() > 0 && (now - strokeTimes[0]) > 60000) {
             strokeTimes.remove(0);
         }
     }
 
-    static function cadence() {
+    static function cadence() as Number {
         return strokeTimes.size();
     }
 
-    static function averageCadence() {
+    static function averageCadence() as Number {
         if (elapsedSeconds <= 0) {
             return 0;
         }
