@@ -1,12 +1,37 @@
 using Toybox.Graphics;
 using Toybox.WatchUi;
 
-class KayakView extends WatchUi.View {
-    var _kayakArt;
-
+class KayakDataField extends WatchUi.DataField {
     function initialize() {
-        View.initialize();
-        _kayakArt = null;
+        DataField.initialize();
+        label = "Kayak Metrics";
+    }
+
+    function compute(info) {
+        // The native data-field value is stroke count; the custom display below
+        // also renders the other kayak metrics.
+        return KayakState.strokes;
+    }
+
+    function onTimerStart() {
+        KayakState.reset();
+        KayakState.running = true;
+    }
+
+    function onTimerResume() {
+        KayakState.running = true;
+    }
+
+    function onTimerPause() {
+        KayakState.running = false;
+    }
+
+    function onTimerStop() {
+        KayakState.running = false;
+    }
+
+    function onTimerReset() {
+        KayakState.reset();
     }
 
     function onUpdate(dc) {
@@ -15,106 +40,29 @@ class KayakView extends WatchUi.View {
 
         var width = dc.getWidth();
         var height = dc.getHeight();
-        drawCentered(dc, "KAYAK ANALYTICS", width, 16, Graphics.FONT_SMALL);
+        dc.drawText(width / 2, 4, Graphics.FONT_SMALL, "KAYAK", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, height * 0.18, Graphics.FONT_LARGE,
+            KayakState.strokes.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, height * 0.38, Graphics.FONT_XTINY,
+            "STROKES", Graphics.TEXT_JUSTIFY_CENTER);
 
-        var status = KayakState.running ? "RECORDING" :
-            (KayakState.sessionFinished ? "SESSION STOPPED" :
-             (KayakState.hasStarted ? "PAUSED" : "SELECT: START"));
-        drawCentered(dc, status, width, 42, Graphics.FONT_XTINY);
-
-        if (_kayakArt == null) {
-            _kayakArt = WatchUi.loadResource(Rez.Drawables.KayakArt);
-        }
-        if (_kayakArt != null) {
-            dc.drawBitmap((width - 120) / 2, 55, _kayakArt);
-        }
-
-        drawCentered(dc, KayakState.strokes.toString(), width,
-            height / 2 - 112, Graphics.FONT_LARGE);
-        drawCentered(dc, "STROKES", width,
-            height / 2 - 42, Graphics.FONT_XTINY);
-        drawCentered(dc, KayakState.cadence().toString() + " / MIN",
-            width, height / 2 - 7, Graphics.FONT_MEDIUM);
-        drawCentered(dc, "AVG " + KayakState.averageCadence().toString() + " / MIN",
-            width, height / 2 + 28, Graphics.FONT_XTINY);
-        drawCentered(dc, "TIME  " + formatTime(KayakState.elapsedSeconds),
-            width, height / 2 + 54, Graphics.FONT_SMALL);
-
+        var watts = "--";
+        var forceText = "--";
+        var stabilityText = "--";
         if (KayakState.sensorAvailable) {
-            drawCentered(dc, "HULL MOTION  " +
-                formatDecimal(KayakState.verticalRange()), width,
-                height / 2 + 86, Graphics.FONT_XTINY);
-            drawCentered(dc, "ACCELERATION  " +
-                formatDecimal(KayakState.verticalAcceleration), width,
-                height / 2 + 106, Graphics.FONT_XTINY);
-        } else {
-            drawCentered(dc, "ACCELEROMETER UNAVAILABLE", width,
-                height / 2 + 90, Graphics.FONT_XTINY);
+            forceText = KayakState.forceProxy.format("%.2f") + " g*";
+            stabilityText = KayakState.stability.toNumber().toString() + "%*";
         }
+        var staminaText = KayakState.staminaEstimate.toNumber().toString() + "%*";
+        var rowY = height * 0.52;
+        dc.drawText(width / 2, rowY, Graphics.FONT_SMALL,
+            "W " + watts + "   F " + forceText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, rowY + 28, Graphics.FONT_SMALL,
+            "STAMINA " + staminaText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, rowY + 54, Graphics.FONT_SMALL,
+            "STABILITY " + stabilityText, Graphics.TEXT_JUSTIFY_CENTER);
 
-        drawCentered(dc, "POWER REQUIRES A POWER METER", width,
-            height - 48, Graphics.FONT_XTINY);
-
-        var controls = KayakState.running ? "SELECT: PAUSE  BACK: STOP" :
-            "MENU: RESET";
-        drawCentered(dc, controls, width, height - 28, Graphics.FONT_XTINY);
-    }
-
-    function drawCentered(dc, text, width, y, font) {
-        dc.drawText(width / 2, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    function formatTime(seconds) {
-        var minutes = seconds / 60;
-        var remainder = seconds % 60;
-        var secText = remainder < 10 ? "0" + remainder.toString() : remainder.toString();
-        return minutes.toString() + ":" + secText;
-    }
-
-    function formatDecimal(value) {
-        return (value * 100).toNumber().toString() + " x 0.01";
-    }
-}
-
-class KayakDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() {
-        BehaviorDelegate.initialize();
-    }
-
-    function onSelect() {
-        if (KayakState.running) {
-            KayakState.running = false;
-        } else {
-            if (!KayakState.hasStarted || KayakState.sessionFinished) {
-                KayakState.resetSession();
-                KayakState.hasStarted = true;
-                KayakState.sessionFinished = false;
-            }
-            KayakState.running = true;
-            KayakState.resetDetector();
-        }
-        WatchUi.requestUpdate();
-        return true;
-    }
-
-    function onBack() {
-        if (KayakState.running || KayakState.hasStarted) {
-            KayakState.running = false;
-            KayakState.hasStarted = false;
-            KayakState.sessionFinished = true;
-            WatchUi.requestUpdate();
-            return true;
-        }
-        return false;
-    }
-
-    function onMenu() {
-        if (!KayakState.running) {
-            KayakState.resetSession();
-            KayakState.hasStarted = false;
-            KayakState.sessionFinished = false;
-            WatchUi.requestUpdate();
-        }
-        return true;
+        dc.drawText(width / 2, height - 20, Graphics.FONT_XTINY,
+            "*ESTIMATE   WATTS: POWER METER NEEDED", Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
