@@ -1,4 +1,5 @@
 using Toybox.Application;
+using Toybox.Lang;
 using Toybox.Sensor;
 using Toybox.System;
 using Toybox.Timer;
@@ -145,8 +146,8 @@ class KayakState {
     static var sensorAvailable = true;
     static var strokes = 0;
     static var elapsedSeconds = 0;
-    static var strokeTimes = [];
-    static var verticalSamples = [];
+    static var strokeTimes as Array<Lang.Number> = [];
+    static var verticalSamples as Array<Lang.Float> = [];
     static var gravityX = 0.0;
     static var gravityY = 0.0;
     static var gravityZ = 0.0;
@@ -157,7 +158,7 @@ class KayakState {
     static var lastStrokeTime = 0;
     static var strokeArmed = true;
 
-    static function reset() {
+    static function reset() as Void {
         running = false;
         hasStarted = false;
         sessionFinished = false;
@@ -165,7 +166,7 @@ class KayakState {
         resetSession();
     }
 
-    static function resetDetector() {
+    static function resetDetector() as Void {
         gravityX = 0.0;
         gravityY = 0.0;
         gravityZ = 0.0;
@@ -177,7 +178,7 @@ class KayakState {
         strokeArmed = true;
     }
 
-    static function resetSession() {
+    static function resetSession() as Void {
         strokes = 0;
         elapsedSeconds = 0;
         strokeTimes = [];
@@ -185,14 +186,14 @@ class KayakState {
         resetDetector();
     }
 
-    static function addVerticalSample(value) {
+    static function addVerticalSample(value as Lang.Float) as Void {
         verticalSamples.add(value);
         while (verticalSamples.size() > 30) {
             verticalSamples.remove(0);
         }
     }
 
-    static function verticalRange() {
+    static function verticalRange() as Lang.Float {
         if (verticalSamples.size() == 0) {
             return 0.0;
         }
@@ -209,17 +210,17 @@ class KayakState {
         return high - low;
     }
 
-    static function pruneStrokeTimes(now) {
+    static function pruneStrokeTimes(now as Lang.Number) as Void {
         while (strokeTimes.size() > 0 && (now - strokeTimes[0]) > 60000) {
             strokeTimes.remove(0);
         }
     }
 
-    static function cadence() {
+    static function cadence() as Lang.Number {
         return strokeTimes.size();
     }
 
-    static function averageCadence() {
+    static function averageCadence() as Lang.Number {
         if (elapsedSeconds <= 0) {
             return 0;
         }
