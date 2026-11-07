@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-    <iq:application id="7f4aa38e5c7d4be4bfc5a77d1d703970" type="watch-app" name="Kayak Stroke" entry="KayakApp" minApiLevel="3.2.0" minSdkVersion="3.2.0" launcherIcon="@Drawables.LauncherIcon">
+    <iq:application id="7f4aa38e5c7d4be4bfc5a77d1d703970" type="watch-app" name="@Strings.AppName" entry="KayakApp" minApiLevel="3.2.0" minSdkVersion="3.2.0" launcherIcon="@Drawables.LauncherIcon">
         <iq:products>
             <iq:product id="fr970" />
         </iq:products>
@@ -8,4 +8,7 @@
             <iq:uses-permission id="Sensor" />
         </iq:permissions>
     </iq:application>
+    <iq:languages>
+        <iq:language>eng</iq:language>
+    </iq:languages>
 </iq:manifest>
