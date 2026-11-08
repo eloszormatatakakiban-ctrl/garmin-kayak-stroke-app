@@ -21,8 +21,8 @@ class KayakDataField extends WatchUi.DataField {
                 (info.currentSpeed * 3.6).format("%.1f") : "--";
             _heartRateText = info.currentHeartRate != null ?
                 info.currentHeartRate.toNumber().toString() : "--";
-            _distanceText = info.currentDistance != null ?
-                (info.currentDistance / 1000.0).format("%.2f") : "--";
+            _distanceText = info.totalDistance != null ?
+                (info.totalDistance / 1000.0).format("%.2f") : "--";
             _timeText = info.timerTime != null ? formatTime(info.timerTime) : "--:--";
             _powerText = info.currentPower != null ?
                 info.currentPower.toNumber().toString() : "--";
