@@ -1,4 +1,5 @@
 using Toybox.Application;
+using Toybox.Math;
 using Toybox.Sensor;
 using Toybox.System;
 using Toybox.WatchUi;
@@ -34,7 +35,7 @@ class KayakApp extends Application.AppBase {
         }
     }
 
-    function onSensorData(data) as Void {
+    function onSensorData(data as Sensor.SensorData) as Void {
         if (!KayakState.running || data == null || data.accelerometerData == null) {
             return;
         }
@@ -52,9 +53,9 @@ class KayakApp extends Application.AppBase {
         if (zs.size() < count) { count = zs.size(); }
 
         for (var i = 0; i < count; i += 1) {
-            // Connect IQ accelerometer samples are in milli-g.
-            KayakState.processSample(xs[i] / 1000.0, ys[i] / 1000.0, zs[i] / 1000.0,
-                System.getTimer());
+            // Accelerometer samples are reported in milli-g.
+            KayakState.processSample(xs[i] / 1000.0, ys[i] / 1000.0,
+                zs[i] / 1000.0, System.getTimer());
         }
     }
 }

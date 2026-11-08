@@ -11,7 +11,6 @@ class KayakDataField extends WatchUi.DataField {
 
     function initialize() {
         DataField.initialize();
-        label = "Kayak Metrics";
     }
 
     function compute(info) {
@@ -21,8 +20,7 @@ class KayakDataField extends WatchUi.DataField {
                 (info.currentSpeed * 3.6).format("%.1f") : "--";
             _heartRateText = info.currentHeartRate != null ?
                 info.currentHeartRate.toNumber().toString() : "--";
-            // Activity.Info in the target SDK does not expose a distance property.
-            // Use the distance data screen provided by Garmin for this value.
+            // This SDK's Activity.Info does not expose a supported distance property.
             _distanceText = "--";
             _timeText = info.timerTime != null ? formatTime(info.timerTime) : "--:--";
             _powerText = info.currentPower != null ?
@@ -67,7 +65,8 @@ class KayakDataField extends WatchUi.DataField {
             Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(accent, background);
-        dc.drawText(centerX, height * 0.09, compact ? Graphics.FONT_MEDIUM : Graphics.FONT_LARGE,
+        dc.drawText(centerX, height * 0.09,
+            compact ? Graphics.FONT_MEDIUM : Graphics.FONT_LARGE,
             KayakState.strokes.toString(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(foreground, background);
         dc.drawText(centerX, height * 0.27, Graphics.FONT_XTINY, "STROKES",
