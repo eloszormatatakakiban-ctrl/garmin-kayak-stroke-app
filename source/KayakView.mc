@@ -21,8 +21,9 @@ class KayakDataField extends WatchUi.DataField {
                 (info.currentSpeed * 3.6).format("%.1f") : "--";
             _heartRateText = info.currentHeartRate != null ?
                 info.currentHeartRate.toNumber().toString() : "--";
-            _distanceText = info.totalDistance != null ?
-                (info.totalDistance / 1000.0).format("%.2f") : "--";
+            // Activity.Info in the target SDK does not expose a distance property.
+            // Use the distance data screen provided by Garmin for this value.
+            _distanceText = "--";
             _timeText = info.timerTime != null ? formatTime(info.timerTime) : "--:--";
             _powerText = info.currentPower != null ?
                 info.currentPower.toNumber().toString() : "--";
@@ -92,7 +93,7 @@ class KayakDataField extends WatchUi.DataField {
             drawMetric(dc, rightX, row1, "HEART", _heartRateText + " bpm", accent, foreground, background);
         }
         if (showDistance) {
-            drawMetric(dc, leftX, row2, "DISTANCE", _distanceText + " km", accent, foreground, background);
+            drawMetric(dc, leftX, row2, "DISTANCE", _distanceText, accent, foreground, background);
         }
         if (showTimer) {
             drawMetric(dc, rightX, row2, "TIME", _timeText, accent, foreground, background);
